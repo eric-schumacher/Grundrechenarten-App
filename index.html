@@ -5,12 +5,24 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Mathe Aufgaben – Online Klassenspiel</title>
 <style>
-/* --- DEIN STYLE: (Unverändert aus deiner letzten Version kopiert, falls du was angepasst hattest!) --- */
 body { margin:0;padding:0;font-family:'Segoe UI',Arial,sans-serif;background:#fafbfc;min-height:100vh;color:#222;}
 .topbar {display:flex;align-items:center;gap:14px;margin:22px 0 10px 28px;font-size:1.1rem;font-weight:500;}
 .punkte {background:#ffe066;color:#814c00;border-radius:12px;padding:7px 13px;font-weight:bold;font-size:1.19rem;letter-spacing:1px;min-width:52px;text-align:center;}
 .name {color:#2274a5;font-weight:600;background:#e2ecf5;border-radius:10px;padding:6px 12px;font-size:1.08rem;}
-.selector-bar {display:flex;flex-direction:column;gap:22px;align-items:center;margin:0 0 32px 0;}
+.selector-bar {display:flex;flex-direction:column;gap:10px;align-items:center;margin:0 0 32px 0;}
+.bereich-btn-wrap {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 6px;
+}
+.punkteanzeige {
+  font-size: 1.09rem;
+  font-weight: 500;
+  color: #333;
+  min-width: 56px;
+  display: inline-block;
+}
 .selector-btn {font-size:1.28rem;padding:18px 36px;border-radius:39px;font-weight:700;border:none;min-width:320px;cursor:pointer;box-shadow:0 2px 12px #0002;transition:background .15s, box-shadow .15s, filter .15s, outline .15s, border .15s, transform .13s;display:flex;align-items:center;justify-content:center;background:#e0e0e0;color:#999;}
 .selector-btn.active {background:#42bd46 !important;color:#fff !important;filter:brightness(0.96);outline:3px solid #fff;border:2px solid #328b35;box-shadow:0 6px 20px #0003;transform:scale(0.98);}
 #aufgabenbereiche {margin:0 0 36px 0;width:100%;}
@@ -126,6 +138,7 @@ body { margin:0;padding:0;font-family:'Segoe UI',Arial,sans-serif;background:#fa
   <span class="punkte" id="punkte">0</span>
   <span class="name" id="anzeigeName"></span>
 </div>
+
 <!-- Lehrer-Übersicht -->
 <div id="lehrerpanel">
   <h2>Lehrer-Übersicht: Schüler-Ergebnisse</h2>
@@ -150,13 +163,27 @@ body { margin:0;padding:0;font-family:'Segoe UI',Arial,sans-serif;background:#fa
     Für Datenschutz bitte keine Klarnamen verwenden.
   </div>
 </div>
-<!-- Schüler-Spielbereich -->
+
+<!-- Aufgabenwahl mit Bereichs-Punkten -->
 <div class="selector-bar">
-  <button type="button" class="selector-btn add" onclick="toggleArea('add')">Additionsaufgaben</button>
-  <button type="button" class="selector-btn sub" onclick="toggleArea('sub')">Subtraktionsaufgaben</button>
-  <button type="button" class="selector-btn mul" onclick="toggleArea('mul')">Multiplikationsaufgaben</button>
-  <button type="button" class="selector-btn divi" onclick="toggleArea('div')">Divisionsaufgaben</button>
+  <div class="bereich-btn-wrap">
+    <button type="button" class="selector-btn add" onclick="toggleArea('add')">Additionsaufgaben</button>
+    <span class="punkteanzeige" id="punkteAdd">(0/3)</span>
+  </div>
+  <div class="bereich-btn-wrap">
+    <button type="button" class="selector-btn sub" onclick="toggleArea('sub')">Subtraktionsaufgaben</button>
+    <span class="punkteanzeige" id="punkteSub">(0/3)</span>
+  </div>
+  <div class="bereich-btn-wrap">
+    <button type="button" class="selector-btn mul" onclick="toggleArea('mul')">Multiplikationsaufgaben</button>
+    <span class="punkteanzeige" id="punkteMul">(0/3)</span>
+  </div>
+  <div class="bereich-btn-wrap">
+    <button type="button" class="selector-btn divi" onclick="toggleArea('div')">Divisionsaufgaben</button>
+    <span class="punkteanzeige" id="punkteDiv">(0/3)</span>
+  </div>
 </div>
+
 <div id="aufgabenbereiche">
   <div id="spielscreen-add" class="hidden">
     <div class="aufgabenbereich">
@@ -247,7 +274,7 @@ body { margin:0;padding:0;font-family:'Segoe UI',Arial,sans-serif;background:#fa
   </form>
 </div>
 <script>
-const SERVER_URL = "https://grundrechenarten-server.onrender.com";
+const SERVER_URL = "https://grundrechenarten-server.onrender.com"; // <--- DEINE SERVER-URL!
 
 const aufgaben = {
   add: {
@@ -307,7 +334,15 @@ async function resetAllData(){
 }
 // --------------------------------------
 
-// Restliche UI-Logik wie gehabt, aber async!
+// Neue Funktion für Bereichsanzeige!
+async function updateBereichPunkte() {
+  const maxl = await loadMaxLevels(userName);
+  document.getElementById('punkteAdd').textContent = `(${maxl.add||0}/3)`;
+  document.getElementById('punkteSub').textContent = `(${maxl.sub||0}/3)`;
+  document.getElementById('punkteMul').textContent = `(${maxl.mul||0}/3)`;
+  document.getElementById('punkteDiv').textContent = `(${maxl.div||0}/3)`;
+}
+
 function toggleArea(area) {
   const screens = ['add','sub','mul','div'];
   if (aktuellerBereich === area) {
@@ -326,6 +361,7 @@ function toggleArea(area) {
   document.getElementById('anzeigeName').textContent = userName;
   ladePunkte(userName).then(p=>document.getElementById('punkte').textContent = p);
 }
+
 function zeigeAufgabe(modus, bereich){
   aktuellerModus = modus;
   bereich = bereich || 'add';
@@ -401,6 +437,7 @@ async function pruefeLoesung(bereich){
       await saveMaxLevels(userName,maxlevels);
       let punkte = await ladePunkte(userName);
       document.getElementById('punkte').textContent = punkte;
+      await updateBereichPunkte();
       feedback.textContent = `✅ Richtig! Jetzt ${punkte} Punkt${punkte>1?'e':''} insgesamt.`;
       konfetti();
     }else{
@@ -454,6 +491,7 @@ document.getElementById('startform').addEventListener('submit',async e=>{
   document.getElementById('punkte').style.display='';
   ['add','sub','mul','div'].forEach(s => document.getElementById('spielscreen-'+s).classList.add('hidden'));
   document.querySelectorAll('.selector-btn').forEach(btn => btn.classList.remove('active'));
+  await updateBereichPunkte();
 });
 window.onload=function(){
   const n=document.getElementById('name');
